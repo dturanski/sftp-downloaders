@@ -1,0 +1,6 @@
+/Users/dturanski/dev/sftp-downloaders/sftp-downloader-core/src/main/java/io/spring/example/sftp/downloader/InputStreamTransfer.java
+/Users/dturanski/dev/sftp-downloaders/sftp-downloader-core/src/main/java/io/spring/example/sftp/downloader/InputStreamProvider.java
+/Users/dturanski/dev/sftp-downloaders/sftp-downloader-core/src/main/java/io/spring/example/sftp/downloader/SftpTransferProperties.java
+/Users/dturanski/dev/sftp-downloaders/sftp-downloader-core/src/main/java/io/spring/example/sftp/downloader/SftpFunctionAutoConfiguration.java
+/Users/dturanski/dev/sftp-downloaders/sftp-downloader-core/src/main/java/io/spring/example/sftp/downloader/AbstractFileInputStreamPersister.java
+/Users/dturanski/dev/sftp-downloaders/sftp-downloader-core/src/main/java/io/spring/example/sftp/downloader/InputStreamPersister.java
