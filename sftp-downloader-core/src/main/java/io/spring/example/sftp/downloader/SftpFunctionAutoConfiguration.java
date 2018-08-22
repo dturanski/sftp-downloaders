@@ -43,7 +43,6 @@ public class SftpFunctionAutoConfiguration {
 	@Bean
 	Function<Message, Message> transfer(InputStreamProvider inputStreamProvider,
 		InputStreamPersister inputStreamPersister) {
-		Function<Message, Message> enricher = null;
 		return  message -> {
 			Assert.isTrue(message.getHeaders().containsKey(FileHeaders.REMOTE_FILE),
 				String.format("Missing required message header %s", FileHeaders.REMOTE_FILE ));

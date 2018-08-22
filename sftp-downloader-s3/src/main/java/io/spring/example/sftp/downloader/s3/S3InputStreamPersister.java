@@ -16,11 +16,21 @@
 
 package io.spring.example.sftp.downloader.s3;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.UUID;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import io.spring.example.sftp.downloader.InputStreamPersister;
 import io.spring.example.sftp.downloader.InputStreamTransfer;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -31,6 +41,7 @@ public class S3InputStreamPersister implements InputStreamPersister {
 	private static Log log = LogFactory.getLog(S3InputStreamPersister.class);
 	private final AmazonS3 s3;
 	private final String bucket;
+	private final String stagingDir = System.getProperty("java.io.tmpdir");
 
 	public S3InputStreamPersister(AmazonS3 s3, String bucket, boolean createBucket) {
 		this.s3 = s3;
@@ -41,9 +52,25 @@ public class S3InputStreamPersister implements InputStreamPersister {
 	@Override
 	public void save(InputStreamTransfer transfer) {
 		log.info(String.format("Saving source contents to bucket %s, key %s", bucket, transfer.getTarget()));
-		PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, transfer.getTarget(), transfer.getSource(),
-			getObjectMetadata(transfer));
+
+		File stagingFile = writeToStagingFile(transfer.getSource());
+
+		PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, transfer.getTarget(), stagingFile)
+			.withMetadata(getObjectMetadata(transfer));
 		s3.putObject(putObjectRequest);
+		stagingFile.delete();
+	}
+
+	private File writeToStagingFile(InputStream source) {
+		File file = Paths.get(stagingDir, UUID.randomUUID().toString()).toFile();
+		try {
+			log.debug("Staging source contents to local file " + file.getAbsolutePath());
+			FileUtils.copyInputStreamToFile(source, file);
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+		return file;
 	}
 
 	private ObjectMetadata getObjectMetadata(InputStreamTransfer transfer) {

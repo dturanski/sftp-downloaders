@@ -18,6 +18,8 @@ package io.spring.example.sftp.downloader;
 
 import java.io.InputStream;
 
+import org.springframework.context.annotation.Bean;
+
 /**
  * @author David Turanski
  **/
