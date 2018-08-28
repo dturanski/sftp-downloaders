@@ -1,7 +1,0 @@
-io/spring/example/sftp/downloader/InputStreamTransfer.class
-io/spring/example/sftp/downloader/SftpTransferProperties$Target.class
-io/spring/example/sftp/downloader/SftpFunctionAutoConfiguration.class
-io/spring/example/sftp/downloader/InputStreamProvider.class
-io/spring/example/sftp/downloader/SftpTransferProperties.class
-io/spring/example/sftp/downloader/AbstractFileInputStreamPersister.class
-io/spring/example/sftp/downloader/InputStreamPersister.class

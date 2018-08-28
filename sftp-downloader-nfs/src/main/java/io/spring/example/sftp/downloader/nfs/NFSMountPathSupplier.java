@@ -16,19 +16,19 @@
 
 package io.spring.example.sftp.downloader.nfs;
 
-import org.springframework.cloud.config.java.AbstractCloudConfig;
-import org.springframework.cloud.connector.nfs.NFSServiceConnector;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
 /**
  * @author David Turanski
  **/
-@Configuration
-@Profile("cloud")
-public class NFSConnectorAutoConfiguration extends AbstractCloudConfig {
-	@Bean public NFSServiceConnector nfs() {
-			return connectionFactory().service(NFSServiceConnector.class);
-		}
+class NFSMountPathSupplier {
+
+	private String mountPath;
+
+	String getMountPath() {
+		return mountPath;
+	}
+
+	void setMountPath(String mountPath) {
+		this.mountPath = mountPath;
+	}
 }

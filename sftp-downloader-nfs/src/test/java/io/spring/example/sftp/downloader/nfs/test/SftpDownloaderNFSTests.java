@@ -18,59 +18,41 @@ package io.spring.example.sftp.downloader.nfs.test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.function.Function;
 
 import io.spring.example.sftp.downloader.InputStreamProvider;
-import io.spring.example.sftp.downloader.InputStreamTransfer;
-import io.spring.example.sftp.downloader.nfs.NFSConnectorAutoConfiguration;
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.cloud.CloudFoundryVcapEnvironmentPostProcessor;
+import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.CloudFactory;
-import org.springframework.cloud.config.java.AbstractCloudConfig;
-import org.springframework.cloud.config.java.CloudScanConfiguration;
-import org.springframework.cloud.config.java.ServiceScanConfiguration;
-import org.springframework.cloud.connector.nfs.Mode;
-import org.springframework.cloud.connector.nfs.NFSServiceConnector;
-import org.springframework.cloud.connector.nfs.VolumeMount;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.matches;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author David Turanski
  **/
-@SpringBootTest(properties = {"spring.cloud.enabled=false"})
+@SpringBootTest
 @RunWith(SpringRunner.class)
-@ActiveProfiles("cloud")
 public class SftpDownloaderNFSTests {
 
 	@ClassRule
@@ -79,38 +61,26 @@ public class SftpDownloaderNFSTests {
 	@Autowired
 	private Function<Message, Message> transfer;
 
-
 	@Test
 	public void functionConfiguredAndImplemented() throws IOException {
 
 		assertThat(localTemporaryFolder.getRoot().exists()).isTrue();
 
-		String target ="target.txt";
+		String target = "target.txt";
 
 		Message message = MessageBuilder.withPayload("foo")
-			.setHeader(FileHeaders.REMOTE_FILE,"source.txt")
-			.setHeader(FileHeaders.FILENAME,target)
+			.setHeader(FileHeaders.REMOTE_FILE, "source.txt")
+			.setHeader(FileHeaders.FILENAME, target)
 			.build();
 		assertThat(transfer.apply(message)).isSameAs(message);
-		assertThat(Files.exists(Paths.get(localTemporaryFolder.getRoot().getAbsolutePath(),target))).isTrue();
+		assertThat(Files.exists(Paths.get(localTemporaryFolder.getRoot().getAbsolutePath(), target))).isTrue();
 
 		assertThat(Files.readAllBytes(Paths.get(localTemporaryFolder.getRoot().getAbsolutePath(), target))).isEqualTo(
 			IOUtils.toByteArray(new ClassPathResource("source.txt").getInputStream()));
 	}
 
-	@SpringBootApplication(exclude = NFSConnectorAutoConfiguration.class)
-	 static class MyApplication {
-		@Bean
-		public BeanFactoryPostProcessor postProcessor() {
-			return configurableListableBeanFactory -> {
-				NFSServiceConnector nfsServiceConnector = mock(NFSServiceConnector.class);
-				when(nfsServiceConnector.getVolumeMounts()).thenReturn(new VolumeMount[] {
-					new VolumeMount(localTemporaryFolder.getRoot().getAbsolutePath(), Mode.ReadWrite) });
-				configurableListableBeanFactory.registerSingleton("nfs", nfsServiceConnector);
-
-			};
-		}
-
+	@SpringBootApplication
+	static class MyApplication {
 		@Bean
 		InputStreamProvider inputStreamProvider() {
 			return resource -> {
@@ -123,6 +93,43 @@ public class SftpDownloaderNFSTests {
 				}
 				return is;
 			};
+		}
+	}
+
+	//Registered in src/test/resources/META-INF/spring.factories
+	public static class TestEnvironment implements EnvironmentPostProcessor {
+
+		/*
+		 * Provide a VCAP_SERVICES entry to the environment and then invoke the
+		 * CloudFoundryVcapEnvironmentPostProcessor to generate "vcap.service.*" properties.
+		 * The presence of "VCAP_SERVICES" also satisfies @ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
+		 */
+		@Override
+		public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+			environment.getPropertySources().addLast(new PropertySource<String>("vcap_test") {
+				@Nullable
+				@Override
+				public Object getProperty(String s) {
+					String vcapServices = null;
+					if (s.equals("VCAP_SERVICES")) {
+
+						try {
+							vcapServices = IOUtils.toString(
+								new ClassPathResource("vcap-service-nfs.json").getInputStream(), StandardCharsets.UTF_8)
+								.replace("$mountpath", localTemporaryFolder.getRoot().getAbsolutePath());
+
+						}
+						catch (IOException e) {
+							e.printStackTrace();
+						}
+
+					}
+					return vcapServices;
+				}
+
+			});
+
+			new CloudFoundryVcapEnvironmentPostProcessor().postProcessEnvironment(environment, application);
 		}
 	}
 }

@@ -1,3 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  io.spring.example.sftp.downloader.nfs.NFSInputStreamPersisterAutoConfiguration,\
-  io.spring.example.sftp.downloader.nfs.NFSConnectorAutoConfiguration
+  io.spring.example.sftp.downloader.nfs.NFSInputStreamPersisterAutoConfiguration
