@@ -16,15 +16,12 @@
 
 package io.spring.example.sftp.downloader.nfs;
 
-import java.util.Optional;
-
 import io.spring.example.sftp.downloader.InputStreamPersister;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnCloudPlatform;
 import org.springframework.boot.cloud.CloudPlatform;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -37,46 +34,37 @@ import org.springframework.lang.Nullable;
  **/
 @Configuration
 @ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
-@EnableConfigurationProperties(NFSConfigurationProperties.class)
 public class NFSInputStreamPersisterAutoConfiguration {
 
 	@Bean
-	public InputStreamPersister nfsInputStreamPersister(NFSMountPathSupplier mountPathSupplier) {
-		return new NFSInputStreamPersister(mountPathSupplier.getMountPath());
+	public InputStreamPersister nfsInputStreamPersister(VcapService nfs) {
+		return new NFSInputStreamPersister(nfs.getVolumeMounts().get(0).getContainerDir());
 	}
 
 	@Bean
-	public NFSMountPathSupplier nfsMountPathSupplier() {
-		return new NFSMountPathSupplier();
+	public VcapService nfs() {
+		return new VcapService();
 	}
 
 	@Bean
-	NFSConfigPostProcessor postProcessor(Environment environment, NFSConfigurationProperties properties) {
-		return new NFSConfigPostProcessor(environment, properties);
+	NFSConfigPostProcessor postProcessor(Environment environment) {
+		return new NFSConfigPostProcessor(environment);
 	}
 
 	static class NFSConfigPostProcessor implements BeanPostProcessor {
-		private static final String VCAP_SERVICES_PREFIX = "vcap.services";
 
 		private final Environment environment;
-		private final NFSConfigurationProperties properties;
+		;
 
-		NFSConfigPostProcessor(Environment environment, NFSConfigurationProperties properties) {
-			this.properties = properties;
+		NFSConfigPostProcessor(Environment environment) {
 			this.environment = environment;
 		}
 
 		@Nullable
 		@Override
 		public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-			if (bean instanceof NFSMountPathSupplier) {
-				String serviceInstance = properties.getServiceInstance();
-
-				((NFSMountPathSupplier) bean).setMountPath(
-					Optional.ofNullable(environment.getProperty(
-					String.join(".", VCAP_SERVICES_PREFIX, serviceInstance, "volume_mounts[0]", "container_dir")))
-					.orElseThrow(() -> new IllegalArgumentException(
-						"Service " + serviceInstance + " is not bound to this application" + ".")));
+			if (bean instanceof VcapService) {
+				bean = NFS.load(environment.getProperty("VCAP_SERVICES"));
 			}
 			return bean;
 		}

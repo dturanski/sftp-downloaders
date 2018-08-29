@@ -128,8 +128,6 @@ public class SftpDownloaderNFSTests {
 				}
 
 			});
-
-			new CloudFoundryVcapEnvironmentPostProcessor().postProcessEnvironment(environment, application);
 		}
 	}
 }

@@ -16,32 +16,30 @@
 
 package io.spring.example.sftp.downloader.nfs;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnCloudPlatform;
-import org.springframework.boot.cloud.CloudPlatform;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+import org.junit.Test;
+
+import org.springframework.core.io.ClassPathResource;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 /**
  * @author David Turanski
  **/
-@ConfigurationProperties(NFSConfigurationProperties.PREFIX)
-@ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
-public class NFSConfigurationProperties {
+public class NFSServiceTests {
 
-	static final String PREFIX = "nfs";
+	@Test
+	public void test() throws IOException {
 
-	/**
-	 * The NFS Volume service instance name.
-	 */
-	private String serviceInstance = "nfs";
+		InputStream is = new ClassPathResource("vcap-service-nfs.json").getInputStream();
 
-	public String getServiceInstance() {
-		return this.serviceInstance;
+		VcapService nfs = NFS.load(is);
+
+		List<VolumeMount> volumeMounts = nfs.getVolumeMounts();
+		assertThat(volumeMounts.get(0).getContainerDir()).isEqualTo("$mountpath");
+
 	}
-
-
-	public void setServiceInstance(String serviceInstance) {
-		this.serviceInstance = serviceInstance;
-	}
-
-
 }

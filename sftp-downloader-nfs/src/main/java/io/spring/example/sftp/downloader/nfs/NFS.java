@@ -16,19 +16,30 @@
 
 package io.spring.example.sftp.downloader.nfs;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.List;
+
+import org.springframework.util.CollectionUtils;
 
 /**
  * @author David Turanski
  **/
-class NFSMountPathSupplier {
+abstract class NFS {
 
-	private String mountPath;
-
-	String getMountPath() {
-		return mountPath;
+	static VcapService load(InputStream json) {
+		List<VcapService> nfsService =  VcapServices.load(json).get("nfs");
+		if (CollectionUtils.isEmpty(nfsService)) {
+			throw new RuntimeException("This application is not bound to service 'nfs'");
+		}
+		if (nfsService.size() > 1) {
+			throw new RuntimeException("Expecting a unique nfs service, found " + nfsService.size());
+		}
+		return nfsService.get(0);
 	}
 
-	void setMountPath(String mountPath) {
-		this.mountPath = mountPath;
+	static VcapService load(String json) {
+		return load(new ByteArrayInputStream(json.getBytes()));
 	}
+
 }
